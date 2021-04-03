@@ -17,7 +17,7 @@ router.use(
 
     const roots = await client
       .db()
-      .collection("roots")
+      .collection("merkleTree")
       .find({}, { _id: -1 })
       .toArray();
 
