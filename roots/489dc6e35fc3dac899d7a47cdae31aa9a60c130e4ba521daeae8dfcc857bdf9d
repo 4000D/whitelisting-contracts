@@ -1,0 +1,13 @@
+{
+  "root": "489dc6e35fc3dac899d7a47cdae31aa9a60c130e4ba521daeae8dfcc857bdf9d",
+  "leafInfos": [
+    {
+      "address": "0x2ee663dc151d8f0ea5ad51a1fbd4998840c63cd0",
+      "amount": "100000"
+    },
+    {
+      "address": "0x2ee663dc151d8f0ea5ad51a1fbd4998840c63cd1",
+      "amount": "200000"
+    }
+  ]
+}
