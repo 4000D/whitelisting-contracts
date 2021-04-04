@@ -8,7 +8,9 @@ const { Leaf, Tree } = require("../lib");
 const router = express.Router();
 
 const catchAsync = (f) => (req, res, next) => {
-  f(req, res).then(next).catch(next);
+  f(req, res)
+    .then(() => next())
+    .catch(next);
 };
 
 router.use(
@@ -16,11 +18,27 @@ router.use(
     /** @type {MongoClient} */
     const client = req.app.locals.client;
 
-    const trees = await client
+    /** @type {Tree[]} */
+    const merkleTrees = await client
       .db()
       .collection("merkleTree")
       .find({}, { _id: -1 })
       .toArray();
+
+    const trees = merkleTrees
+      .map(({ root = "", leafInfos = [] }) => {
+        if (!root || leafInfos.length === 0) return null;
+
+        const leaves = leafInfos.map(
+          ({ address, amount }) => new Leaf(address, amount)
+        );
+
+        const tree = new Tree(leaves);
+
+        if (root !== tree.root.toString("hex")) return null;
+        return tree;
+      })
+      .filter((v) => v);
 
     res.locals.trees = trees;
   })
@@ -68,30 +86,33 @@ router.get(
       .filter((v) => v.leaf);
 
     if (data.length === 0) {
-      return {
+      return res.json({
         success: false,
-      };
+      });
     }
 
     const sortedData = orderBy(data, "leaf.amount", "desc");
     const { tree, leaf } = sortedData[0];
 
-    return {
+    return res.json({
       success: true,
       root: tree.root.toString("hex"),
       amount: leaf.amount.toString(),
       proof: tree.getProof(leaf),
-    };
+    });
   })
 );
 
 router.use((err, req, res, next) => {
   if (err) {
+    console.error(err);
     res.status(500).json({
       success: false,
       message: err.message,
     });
+    return next(err);
   }
+  next();
 });
 
 module.exports = router;
