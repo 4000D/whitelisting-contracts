@@ -1,6 +1,7 @@
-const express = require("express");
 // eslint-disable-next-line no-unused-vars
 const { MongoClient } = require("mongodb");
+const express = require("express");
+const orderBy = require("lodash/orderBy");
 
 const { Leaf, Tree } = require("../lib");
 
@@ -15,53 +16,72 @@ router.use(
     /** @type {MongoClient} */
     const client = req.app.locals.client;
 
-    const roots = await client
+    const trees = await client
       .db()
       .collection("merkleTree")
       .find({}, { _id: -1 })
       .toArray();
 
-    res.locals.roots = roots;
+    res.locals.trees = trees;
   })
 );
 
-router.get(
-  "/roots",
-  catchAsync(async (req, res) => {
-    const { roots } = res.locals;
-    res.json(roots);
-  })
-);
+// router.get(
+//   "/trees",
+//   catchAsync(async (req, res) => {
+//     const { trees } = res.locals;
+
+//     const trees = trees.map((treeInfo) => {
+//       const leafInfos = treeInfo.leafInfos;
+//       const leaves = leafInfos.map(
+//         ({ address, amount }) => new Leaf(address, amount)
+//       );
+
+//       const tree = new Tree(leaves);
+
+//       if (tree.root.toString("hex") !== treeInfo.root) {
+//         console.error(`root mismatch`);
+//         throw new Error("root mismatch");
+//       }
+
+//       return tree;
+//     });
+
+//     res.json(trees);
+//   })
+// );
 
 router.get(
-  "/trees",
+  "/amountAndProof/:address",
   catchAsync(async (req, res) => {
-    const { roots } = res.locals;
+    const address = req.params.address.toLowerCase().trim();
 
-    const trees = roots.map((treeInfo) => {
-      const leafInfos = treeInfo.leafInfos;
-      const leaves = leafInfos.map(
-        ({ address, amount }) => new Leaf(address, amount)
-      );
+    const { trees } = res.locals;
 
-      const tree = new Tree(leaves);
+    const data = trees
+      .map((tree) => {
+        const leaf = tree.leaves.find(
+          (leaf) => leaf.getAddressHex().toLowerCase().trim() === address
+        );
+        return { tree, leaf };
+      })
+      .filter((v) => v.leaf);
 
-      if (tree.root.toString("hex") !== treeInfo.root) {
-        console.error(`root mismatch`);
-        throw new Error("root mismatch");
-      }
+    if (data.length === 0) {
+      return {
+        success: false,
+      };
+    }
 
-      return tree;
-    });
+    const sortedData = orderBy(data, "leaf.amount", "desc");
+    const { tree, leaf } = sortedData[0];
 
-    res.json(trees);
-  })
-);
-
-router.get(
-  "/amountAndProof",
-  catchAsync(async (req, res) => {
-    const { roots } = res.locals;
+    return {
+      success: true,
+      root: tree.root.toString("hex"),
+      amount: leaf.amount.toString(),
+      proof: tree.getProof(leaf),
+    };
   })
 );
 
