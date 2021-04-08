@@ -18,6 +18,13 @@ router.use(
     /** @type {MongoClient} */
     const client = req.app.locals.client;
 
+    const n = await client.db().collection("merkleTree").countDocuments({});
+    
+    if (res.locals.trees && res.locals.trees.length === n) {
+      next();
+      return;
+    }
+
     /** @type {Tree[]} */
     const merkleTrees = await client
       .db()

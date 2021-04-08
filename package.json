@@ -6,6 +6,7 @@
   "scripts": {
     "build": "truffle compile",
     "test": "NODE_ENV=test truffle test ./test/*.test.js",
+    "pm2": "pm2 start server -n whitelisting-server -i 4",
     "lint": "npm run lint:js && npm run lint:sol",
     "lint:js": "eslint --fix scripts test",
     "lint:sol": "npx prettier --write 'contracts/**/*.sol'"
