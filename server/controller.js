@@ -1,6 +1,7 @@
 // eslint-disable-next-line no-unused-vars
 const { MongoClient } = require("mongodb");
 const express = require("express");
+const {toBN} = require("web3-utils");
 const orderBy = require("lodash/orderBy");
 
 const { Leaf, Tree } = require("../lib");
@@ -98,7 +99,7 @@ router.get(
       });
     }
 
-    const sortedData = orderBy(data, "leaf.amount", "desc");
+    const sortedData = orderBy(data, ({leaf}) => leaf.getAmountHex(), "desc");
     const { tree, leaf } = sortedData[0];
 
     return res.json({
