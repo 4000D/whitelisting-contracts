@@ -80,6 +80,8 @@ router.use(
 router.get(
   "/amountAndProof/:address",
   catchAsync(async (req, res) => {
+    const client = req.app.locals.client;
+    
     const address = req.params.address.toLowerCase().trim();
 
     const addressDoc = await client.db().collection("address").findOne({address});
