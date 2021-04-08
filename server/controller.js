@@ -16,15 +16,14 @@ const catchAsync = (f) => (req, res, next) => {
 };
 
 router.use(
-  catchAsync(async (req, res) => {
+  catchAsync(async (req, res, next) => {
     /** @type {MongoClient} */
     const client = req.app.locals.client;
 
     const n = await client.db().collection("merkleTree").countDocuments({});
 
     if (res.locals.trees && res.locals.trees.length === n) {
-      next();
-      return;
+      return next();
     }
 
     /** @type {Tree[]} */
@@ -82,14 +81,16 @@ router.get(
   "/amountAndProof/:address",
   catchAsync(async (req, res) => {
     const client = req.app.locals.client;
-    
+
     const address = req.params.address.toLowerCase().trim();
 
-    const addressDoc = await client.db().collection("address").findOne({address});
-    
+    const addressDoc = await client
+      .db()
+      .collection("address")
+      .findOne({ address });
+
     if (!addressDoc) {
-      res.json({success: false});
-      return;
+      return res.json({ success: false });
     }
 
     const targetRoots = addressDoc.root;
@@ -102,13 +103,13 @@ router.get(
     const { trees } = res.locals;
 
     const data = trees
-      .filter(tree => targetRootsSet.has(tree.root.toString("hex")))
+      .filter((tree) => targetRootsSet.has(tree.root.toString("hex")))
       .map((tree) => {
         const leafIndex = indexMap[tree.root.toString("hex")];
         const leaf = tree.leaves[leafIndex];
         if (leaf.getAddressHex() !== address) {
           console.error("invalid leaf");
-          return;
+          return null;
         }
         return { tree, leaf };
       })
@@ -125,7 +126,7 @@ router.get(
 
     return res.json({
       success: true,
-      root: tree.root.toString("hex"),
+      root: "0x" + tree.root.toString("hex"),
       amount: leaf.amount.toString(),
       proof: tree.getProof(leaf),
     });
