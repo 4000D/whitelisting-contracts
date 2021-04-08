@@ -14,6 +14,8 @@ const uri = mongodbUri.format({
   },
 });
 
+console.log("mongodb uri:", uri);
+
 const client = new MongoClient(uri, {
   connectTimeoutMS: 5000,
   useNewUrlParser: true,
