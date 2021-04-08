@@ -3,6 +3,7 @@ const { MongoClient } = require("mongodb");
 const express = require("express");
 const { toBN } = require("web3-utils");
 const orderBy = require("lodash/orderBy");
+const zipObject = require("lodash/zipObject");
 
 const { Leaf, Tree } = require("../lib");
 
@@ -92,7 +93,10 @@ router.get(
     }
 
     const targetRoots = addressDoc.root;
+    const rootIndex = addressDoc.index;
     const targetRootsSet = new Set(targetRoots);
+
+    const indexMap = zipObject(targetRoots, rootIndex);
 
     /** @type {Tree[]} */
     const { trees } = res.locals;
@@ -100,9 +104,12 @@ router.get(
     const data = trees
       .filter(tree => targetRootsSet.has(tree.root.toString("hex")))
       .map((tree) => {
-        const leaf = tree.leaves.find(
-          (leaf) => leaf.getAddressHex().toLowerCase().trim() === address
-        );
+        const leafIndex = indexMap[tree.root.toString("hex")];
+        const leaf = tree.leaves[leafIndex];
+        if (leaf.getAddressHex() !== address) {
+          console.error("invalid leaf");
+          return;
+        }
         return { tree, leaf };
       })
       .filter((v) => v.leaf);
