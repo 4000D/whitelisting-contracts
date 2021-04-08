@@ -1,7 +1,7 @@
 // eslint-disable-next-line no-unused-vars
 const { MongoClient } = require("mongodb");
 const express = require("express");
-const {toBN} = require("web3-utils");
+const { toBN } = require("web3-utils");
 const orderBy = require("lodash/orderBy");
 
 const { Leaf, Tree } = require("../lib");
@@ -20,7 +20,7 @@ router.use(
     const client = req.app.locals.client;
 
     const n = await client.db().collection("merkleTree").countDocuments({});
-    
+
     if (res.locals.trees && res.locals.trees.length === n) {
       next();
       return;
@@ -82,9 +82,21 @@ router.get(
   catchAsync(async (req, res) => {
     const address = req.params.address.toLowerCase().trim();
 
+    const addressDoc = await client.db().collection("address").findOne({address});
+    
+    if (!addressDoc) {
+      res.json({success: false});
+      return;
+    }
+
+    const targetRoots = addressDoc.root;
+    const targetRootsSet = new Set(targetRoots);
+
+    /** @type {Tree[]} */
     const { trees } = res.locals;
 
     const data = trees
+      .filter(tree => targetRootsSet.has(tree.root.toString("hex")))
       .map((tree) => {
         const leaf = tree.leaves.find(
           (leaf) => leaf.getAddressHex().toLowerCase().trim() === address
@@ -99,7 +111,7 @@ router.get(
       });
     }
 
-    const sortedData = orderBy(data, ({leaf}) => leaf.getAmountHex(), "desc");
+    const sortedData = orderBy(data, ({ leaf }) => leaf.getAmountHex(), "desc");
     const { tree, leaf } = sortedData[0];
 
     return res.json({
