@@ -118,7 +118,10 @@ router.get(
       .findOne({ address });
 
     if (!addressDoc) {
-      return res.json({ success: false });
+      return res.json({
+        success: false,
+        message: `Unknown address: ${address}`,
+      });
     }
 
     const targetRoots = addressDoc.root;
@@ -172,7 +175,7 @@ router.post(
     if (accounts.length === 0) {
       return res.json({
         success: false,
-        message: "body.leaves must be non-empty array",
+        message: "accounts must be non-empty array",
       });
     }
 
@@ -202,7 +205,8 @@ router.post(
     if (n > 0) {
       return res.json({
         success: false,
-        message: `tree#${root} already exists`,
+        message: `tree already exists`,
+        root: appendHexPrefix(root),
       });
     }
 
